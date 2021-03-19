@@ -27,6 +27,7 @@ import sys
 
 from django.urls import reverse
 from django.views.decorators.http import require_POST
+from django.core.files.storage import FileSystemStorage
 
 LOG = logging.getLogger(__name__)
 
@@ -117,7 +118,20 @@ def _convert_format(format_dict, inverse=False):
 def guess_format(request):
   file_format = json.loads(request.POST.get('fileFormat', '{}'))
 
-  if file_format['inputFormat'] == 'file':
+  if file_format['inputFormat'] == 'localfile':
+    upload_file = request.FILES['inputfile']
+    fs = FileSystemStorage()
+    name = fs.save(upload_file.name, upload_file)
+    format_ = {
+        "file_url": fs.url(name),
+        "quoteChar": "\"",
+        "recordSeparator": '\\n',
+        "type": "csv",
+        "hasHeader": True,
+        "fieldSeparator": ","
+      }
+
+  elif file_format['inputFormat'] == 'file':
     path = urllib_unquote(file_format["path"])
     indexer = MorphlineIndexer(request.user, request.fs)
     if not request.fs.isfile(path):
